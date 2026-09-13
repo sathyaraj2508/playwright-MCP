@@ -1,0 +1,12 @@
+npm install dotenv
+npm install @faker-js/faker
+npm install luxon
+npm install ajv csv-parse xlsx
+npm install @axe-core/playwright
+npm install allure-playwright
+npm install -D @types/node
+npx playwright install
+npm install mysql2
+
+create a file called bat file [env_setup.bat] and place all the above commands in that file 
+g:\Playwright\PlayWright_Pdf\Playwright_Framework\Project files\env_setup.batand run the file

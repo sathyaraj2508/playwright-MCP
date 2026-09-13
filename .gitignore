@@ -1,0 +1,32 @@
+# ============================================================
+# .gitignore - Files and directories excluded from Git tracking
+# ============================================================
+
+# Dependencies
+node_modules/
+
+/prompts/
+
+# Environment & secrets
+.env.example
+
+# Playwright test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Reports
+/reports/
+/failure-results/
+/allure-results/
+/custom-report/
+
+# Tool / IDE config (local caches, not project files)
+.claude/
+.commandcode/
+.playwright-cli/
+.playwright-mcp/
+/agent/
+/.agents/skills/
