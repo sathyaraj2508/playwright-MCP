@@ -1,96 +1,196 @@
-#To run manually: go to your repo → Actions → Playwright Tests → Run workflow → choose your parameters → Run.
+name: 🎭 Playwright Tests
 
-name: 🎭 Playwright Tests 
-  
-on: 
-  push: 
-    branches: [master] 
-  pull_request: 
-    branches: [master] 
-  workflow_dispatch: 
-    inputs: 
-      test_suite: 
-        description: "Select test suite" 
-        type: choice 
-        options: 
-          - test:master 
-          - test:sanity 
-          - test:regression 
-          - test:e2e 
-          - test:api 
-          - test:web 
-          - test:datadriven 
-        default: "test:e2e" 
-      browser: 
-        description: "Select browser" 
-        type: choice 
-        options: 
-          - chromium 
-          - firefox 
-          - webkit 
-        default: "chromium" 
-      mode: 
-        description: "Run mode" 
-        type: choice 
-        options: 
-          - headless 
-          - headed 
-        default: "headless" 
-jobs: 
-  test: 
-    timeout-minutes: 60 
-    runs-on: windows-latest 
+on:
+  push:
+    branches: [master]
 
-    steps: 
-      - name: 📥 Checkout Repository 
-        uses: actions/checkout@v4 
-    
-      - name: 🟢 Set up Node.js 
-        uses: actions/setup-node@v4 
-        with: 
-          node-version: lts/* 
+  pull_request:
+    branches: [master]
 
-      - name: 📦 Install Dependencies 
-        run: npm ci 
-  
-      - name: 🎭 Install Playwright Browsers 
-        run: npx playwright install --with-deps 
-  
-      - name: ⚙️ Create .env File 
-        run: Copy-Item .env.example .env 
-  
-      - name: 🧪 Run Playwright Tests 
-        run: | 
-          $suite = "${{ github.event.inputs.test_suite || 'test:e2e' }}" 
-          $browser = "${{ github.event.inputs.browser || 'chromium' }}" 
-          $mode = "${{ github.event.inputs.mode || 'headless' }}" 
-          $tag = $suite -replace 'test:', '' 
-          $browserFlag = "--project=$browser" 
-          $modeFlag = if ($mode -eq 'headed') { '--headed' } else { '' } 
-          npx playwright test --grep "@$tag" $browserFlag $modeFlag 
-        env: 
-          CI: "1" 
-  
-      - name: 📊 Upload Playwright HTML Report 
-        if: always() 
-        uses: actions/upload-artifact@v4 
-        with: 
-          name: playwright-report 
-          path: reports/ 
-          retention-days: 30 
-  
-      - name: 📋 Upload Custom Report 
-        if: always() 
-        uses: actions/upload-artifact@v4 
-        with: 
-          name: custom-report 
-          path: custom-report/ 
-          retention-days: 30 
-  
-      - name: 📈 Upload Allure Results 
-        if: always() 
-        uses: actions/upload-artifact@v4 
-        with: 
-          name: allure-results 
-          path: allure-results/ 
-          retention-days: 30 
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: "Select test suite"
+        type: choice
+        required: true
+        options:
+          - test:master
+          - test:sanity
+          - test:regression
+          - test:end-to-end
+          - test:api
+          - test:web
+          - test:datadriven
+        default: "test:end-to-end"
+
+      browser:
+        description: "Select browser"
+        type: choice
+        required: true
+        options:
+          - chromium
+          - firefox
+          - webkit
+        default: "chromium"
+
+      mode:
+        description: "Run mode"
+        type: choice
+        required: true
+        options:
+          - headless
+          - headed
+        default: "headless"
+
+
+jobs:
+
+  test:
+    name: 🎭 Playwright Test
+    timeout-minutes: 60
+    runs-on: windows-latest
+
+    steps:
+
+      # ==========================================================
+      # Checkout Repository
+      # ==========================================================
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v5
+
+
+      # ==========================================================
+      # Setup Node.js
+      # ==========================================================
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+
+
+      # ==========================================================
+      # Install Dependencies
+      # ==========================================================
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+
+      # ==========================================================
+      # Install Playwright Browsers
+      # ==========================================================
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install
+
+
+      # ==========================================================
+      # Run Playwright Tests
+      # ==========================================================
+      - name: 🧪 Run Playwright Tests
+        shell: pwsh
+        run: |
+
+          # Get workflow inputs
+          $suite = "${{ inputs.test_suite || 'test:master' }}"
+          $browser = "${{ inputs.browser || 'chromium' }}"
+          $mode = "${{ inputs.mode || 'headless' }}"
+
+          # Convert:
+          # test:master       -> master
+          # test:sanity       -> sanity
+          # test:regression   -> regression
+          # test:end-to-end   -> end-to-end
+          # test:api          -> api
+          # test:web          -> web
+          # test:datadriven   -> datadriven
+          $tag = $suite -replace '^test:', ''
+
+          # Browser project
+          $browserFlag = "--project=$browser"
+
+          # Display configuration
+          Write-Host ""
+          Write-Host "================================================"
+          Write-Host "       🎭 PLAYWRIGHT TEST CONFIGURATION"
+          Write-Host "================================================"
+          Write-Host "Test Suite : $suite"
+          Write-Host "Tag        : @$tag"
+          Write-Host "Browser    : $browser"
+          Write-Host "Mode       : $mode"
+          Write-Host "================================================"
+          Write-Host ""
+
+          # Run Playwright tests
+          if ($mode -eq "headed") {
+
+            Write-Host "Running Playwright in HEADED mode..."
+
+            npx playwright test `
+              --grep "@$tag" `
+              $browserFlag `
+              --headed
+
+          }
+          else {
+
+            Write-Host "Running Playwright in HEADLESS mode..."
+
+            npx playwright test `
+              --grep "@$tag" `
+              $browserFlag
+
+          }
+
+        env:
+          CI: "1"
+
+
+      # ==========================================================
+      # Upload Playwright HTML Report
+      # ==========================================================
+      - name: 📊 Upload Playwright HTML Report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+          if-no-files-found: warn
+
+
+      # ==========================================================
+      # Upload Custom Report
+      # ==========================================================
+      - name: 📋 Upload Custom Report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: custom-report
+          path: custom-report/
+          retention-days: 30
+          if-no-files-found: warn
+
+
+      # ==========================================================
+      # Upload Allure Results
+      # ==========================================================
+      - name: 📈 Upload Allure Results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 30
+          if-no-files-found: warn
+
+
+      # ==========================================================
+      # Upload Test Results
+      # ==========================================================
+      - name: 📸 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
+          if-no-files-found: warn
